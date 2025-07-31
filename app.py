@@ -6,7 +6,7 @@ import requests
 
 @st.cache_data
 def fetch_poster(movie_id: int) -> str:
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=f0ed755798ab46008e2fb98adb398175&language=en-US"
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()

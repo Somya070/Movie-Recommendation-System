@@ -3,14 +3,34 @@ import pickle
 import pandas as pd
 import requests
 
-def fetch_poster(movie_id):
-    response = requests.get('https://api.themoviedb.org/3/movie/{}?api_key=b4609f4aefd88c86c2aecf46ebdc295a&language=en-US'.format(movie_id))
-    data = response.json()
-    print(data)
-    return "https://image.tmdb.org/t/p/w500/" +data['poster_path']
 
+@st.cache_data
+def fetch_poster(movie_id: int) -> str:
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=f0ed755798ab46008e2fb98adb398175&language=en-US"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        # Try poster_path first
+        poster_path = data.get('poster_path')
+        if poster_path:
+            return "https://image.tmdb.org/t/p/w500/" + poster_path
+
+        # If poster_path not found, try backdrop_path
+        backdrop_path = data.get('backdrop_path')
+        if backdrop_path:
+            return "https://image.tmdb.org/t/p/w500/" + backdrop_path
+
+        # Final fallback: placeholder image
+        return "https://via.placeholder.com/500x750.png?text=No+Image"
+
+    except Exception as e:
+        print(f"Poster fetch error for movie_id {movie_id}: {e}")
+        return "https://via.placeholder.com/500x750.png?text=No+Image"
+
+# ---- Function to recommend movies ----
 def recommend(movie):
-
     movies_idx = movies[movies['title'] == movie].index[0]
     distances = similarity[movies_idx]
     movies_list = sorted(list(enumerate(distances)), reverse=True, key=lambda x: x[1])[1:6]
@@ -20,15 +40,15 @@ def recommend(movie):
     for i in movies_list:
         movie_id = movies.iloc[i[0]].id
         recommended_movies.append(movies.iloc[i[0]].title)
-        # fetch poster from API
         recommended_posters.append(fetch_poster(movie_id))
-    return recommended_movies,recommended_posters
+    return recommended_movies, recommended_posters
 
+# ---- Load Data ----
 movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
 movies = pd.DataFrame(movies_dict)
-
 similarity = pickle.load(open('similarity.pkl', 'rb'))
 
+# ---- Streamlit UI ----
 st.title('Movie Recommendation System')
 
 selected_movie_name = st.selectbox(
@@ -37,22 +57,12 @@ selected_movie_name = st.selectbox(
 )
 
 if st.button('Recommend'):
-    names,posters = recommend(selected_movie_name)
+    names, posters = recommend(selected_movie_name)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.text(names[0])
-        st.image(posters[0])
-    with col2:
-        st.text(names[1])
-        st.image(posters[1])
-    with col3:
-        st.text(names[2])
-        st.image(posters[2])
-    with col4:
-        st.text(names[3])
-        st.image(posters[3])
-    with col5:
-        st.text(names[4])
-        st.image(posters[4])
+    cols = st.columns(5)
+    for idx, col in enumerate(cols):
+        with col:
+            st.text(names[idx])
+            st.image(posters[idx])
+
 

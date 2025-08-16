@@ -3,14 +3,7 @@ import pickle
 import streamlit as st
 import pandas as pd
 import requests
-import subprocess
-import sys
-
-try:
-    import gdown
-except ModuleNotFoundError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "gdown"])
-    import gdown
+import gdown
 
 
 FILE_ID = "1edTXk3NPMPwxDit4T3804VLBy635J-as"

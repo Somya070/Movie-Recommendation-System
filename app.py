@@ -1,35 +1,52 @@
-import streamlit as st
+import os
+import gdown
+import gzip
 import pickle
+import streamlit as st
 import pandas as pd
 import requests
 
+# ---------------- Google Drive Download ----------------
+FILE_ID = "1edTXk3NPMPwxDit4T3804VLBy635J-as"
+DOWNLOAD_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 
+# Download if not present
+if not os.path.exists("similarity.pkl.gz"):
+    print("Downloading compressed similarity file from Google Drive...")
+    gdown.download(DOWNLOAD_URL, "similarity.pkl.gz", quiet=False)
+
+# Load the compressed similarity matrix
+with gzip.open("similarity.pkl.gz", "rb") as f:
+    similarity = pickle.load(f)
+
+# ---------------- Load Movie Data ----------------
+movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
+movies = pd.DataFrame(movies_dict)
+
+# ---------------- Poster Fetch Function ----------------
 @st.cache_data
 def fetch_poster(movie_id: int) -> str:
-    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={api_key}&language=en-US"
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key=f0ed755798ab46008e2fb98adb398175&language=en-US"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         data = response.json()
 
-        # Try poster_path first
         poster_path = data.get('poster_path')
         if poster_path:
             return "https://image.tmdb.org/t/p/w500/" + poster_path
 
-        # If poster_path not found, try backdrop_path
         backdrop_path = data.get('backdrop_path')
         if backdrop_path:
             return "https://image.tmdb.org/t/p/w500/" + backdrop_path
 
-        # Final fallback: placeholder image
         return "https://via.placeholder.com/500x750.png?text=No+Image"
 
     except Exception as e:
         print(f"Poster fetch error for movie_id {movie_id}: {e}")
         return "https://via.placeholder.com/500x750.png?text=No+Image"
 
-# ---- Function to recommend movies ----
+# ---------------- Recommendation Function ----------------
 def recommend(movie):
     movies_idx = movies[movies['title'] == movie].index[0]
     distances = similarity[movies_idx]
@@ -43,16 +60,11 @@ def recommend(movie):
         recommended_posters.append(fetch_poster(movie_id))
     return recommended_movies, recommended_posters
 
-# ---- Load Data ----
-movies_dict = pickle.load(open('movie_dict.pkl', 'rb'))
-movies = pd.DataFrame(movies_dict)
-similarity = pickle.load(open('similarity.pkl', 'rb'))
-
-# ---- Streamlit UI ----
-st.title('Movie Recommendation System')
+# ---------------- Streamlit UI ----------------
+st.title('🎬 Movie Recommendation System')
 
 selected_movie_name = st.selectbox(
-    'Pick a movie which you want to recommend',
+    'Pick a movie you want recommendations for:',
     movies['title'].values
 )
 
@@ -64,5 +76,3 @@ if st.button('Recommend'):
         with col:
             st.text(names[idx])
             st.image(posters[idx])
-
-

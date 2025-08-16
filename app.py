@@ -6,17 +6,16 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# ---------------- Google Drive Download ----------------
 FILE_ID = "1edTXk3NPMPwxDit4T3804VLBy635J-as"
 DOWNLOAD_URL = f"https://drive.google.com/uc?id={FILE_ID}"
 
 # Download if not present
-if not os.path.exists("similarity.pkl.gz"):
-    print("Downloading compressed similarity file from Google Drive...")
-    gdown.download(DOWNLOAD_URL, "similarity.pkl.gz", quiet=False)
+if not os.path.exists("similarity.pkl"):
+    print("Downloading similarity file from Google Drive...")
+    gdown.download(DOWNLOAD_URL, "similarity.pkl", quiet=False)
 
-# Load the compressed similarity matrix
-with gzip.open("similarity.pkl.gz", "rb") as f:
+# Load the similarity matrix (Normal pickle load)
+with open("similarity.pkl", "rb") as f:
     similarity = pickle.load(f)
 
 # ---------------- Load Movie Data ----------------
